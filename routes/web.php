@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\HomeController; // Tambahkan ini
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\FeedbackController;
@@ -49,7 +49,8 @@ Route::middleware('auth')->group(function () {
     // DOCTORS (ADMIN ONLY)
     // ===================
     Route::prefix('admin')->middleware('role:admin')->name('admin.')->group(function() {
-        Route::resource('doctors', DoctorController::class);
+        Route::resource('doctors', DoctorController::class)->except(['show']);
+        Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');
     });
 
     // ===================
@@ -90,10 +91,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('wounds', WoundController::class);
     
     // ===================
-    // DOCTORS FOR PATIENTS
+    // DOCTORS FOR PATIENTS - INI YANG PERLU DIPASTIKAN ADA
     // ===================
     Route::middleware('role:patient')->group(function() {
-        Route::get('/doctors', [DoctorController::class, 'listForPatients'])->name('doctors.index');
-        Route::get('/doctors/{doctor}', [DoctorController::class, 'showForPatients'])->name('doctors.show');
+        // Route untuk daftar dokter (patient)
+        Route::get('/patient/doctors', [DoctorController::class, 'listForPatients'])->name('patient.doctors.index');
+        
+        // Route untuk detail dokter (patient)
+        Route::get('/patient/doctors/{doctor}', [DoctorController::class, 'showForPatients'])->name('patient.doctors.show');
     });
 });
