@@ -2,101 +2,98 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\HomeController; // Tambahkan ini
 use App\Http\Controllers\DoctorController;
-use App\Http\Controllers\WoundController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\MessageController;
-use App\Http\Controllers\PatientDashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\WoundController;
 
-// ================= PUBLIC ROUTES =================
-// Home Page - TAMPILKAN CONTACT PAGE (RS Pondok Indah)
-Route::get('/', function () {
-    return view('contact'); // <-- INI YANG DIPERBAIKI
-})->name('home');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
-// Contact Pages (PUBLIC - bisa diakses tanpa login)
-Route::get('/contact', function () {
-    return view('contact');
-})->name('contact');
+// ===================
+// HOME PAGE (UNTUK SEMUA)
+// ===================
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::get('/contact-us', function () {
-    return view('contact');
-})->name('contact.us');
-
-// Auth Routes (for guests only)
+// ===================
+// AUTH ROUTES
+// ===================
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-    
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 });
 
-// Logout (accessible when logged in)
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
-// ================= PROTECTED ROUTES (Need Login) =================
+// ===================
+// PROTECTED ROUTES
+// ===================
 Route::middleware('auth')->group(function () {
+    // Logout
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     
-    // Main Dashboard Redirect
-    Route::get('/dashboard', function () {
-        $user = auth()->user();
-        
-        if ($user->role == 'admin') {
-            return view('dashboard.admin', ['user' => $user]);
-        } elseif ($user->role == 'doctor') {
-            return view('dashboard.doctor', ['user' => $user]);
-        } elseif ($user->role == 'patient') {
-            return view('dashboard.patient', ['user' => $user]);
-        }
-        
-        return redirect('/');
-    })->name('dashboard');
-    
-    // Role-based Dashboards
-    Route::get('/admin/dashboard', function () {
-        $user = auth()->user();
-        if ($user->role !== 'admin') abort(403);
-        return view('dashboard.admin', ['user' => $user]);
-    })->name('admin.dashboard');
-    
-    Route::get('/doctor/dashboard', function () {
-        $user = auth()->user();
-        if ($user->role !== 'doctor') abort(403);
-        return view('dashboard.doctor', ['user' => $user]);
-    })->name('doctor.dashboard');
-    
-    Route::get('/patient/dashboard', function () {
-        $user = auth()->user();
-        if ($user->role !== 'patient') abort(403);
-        return view('dashboard.patient', ['user' => $user]);
-    })->name('patient.dashboard');
-    
-    // Resource Routes
-    Route::resource('appointments', AppointmentController::class);
-    Route::resource('doctors', DoctorController::class);
-    Route::resource('wounds', WoundController::class);
-    Route::resource('feedbacks', FeedbackController::class);
-    Route::resource('messages', MessageController::class);
-    
-    // Appointment actions
-    Route::post('/appointments/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
-    Route::post('/appointments/{appointment}/reject', [AppointmentController::class, 'reject'])->name('appointments.reject');
-    Route::post('/appointments/{appointment}/complete', [AppointmentController::class, 'complete'])->name('appointments.complete');
-    Route::post('/appointments/{appointment}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-    
-    // Doctor specific routes
-    Route::get('/doctors/list/patients', [DoctorController::class, 'listForPatients'])->name('doctors.list.patients');
-    Route::get('/doctors/{doctor}/patients', [DoctorController::class, 'showForPatients'])->name('doctors.show.patients');
-    
-    // Wound actions
-    Route::post('/wounds/{wound}/update-class', [WoundController::class, 'updateClass'])->name('wounds.update.class');
-    
-    // Profile
+    // ===================
+    // PROFILE
+    // ===================
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // ===================
+    // DOCTORS (ADMIN ONLY)
+    // ===================
+    Route::prefix('admin')->middleware('role:admin')->name('admin.')->group(function() {
+        Route::resource('doctors', DoctorController::class);
+    });
+
+    // ===================
+    // APPOINTMENTS
+    // ===================
+    Route::prefix('appointments')->group(function() {
+        Route::get('/', [AppointmentController::class, 'index'])->name('appointments.index');
+        
+        Route::middleware('role:patient')->group(function() {
+            Route::get('/create/{doctor}', [AppointmentController::class, 'create'])->name('appointments.create');
+            Route::post('/store/{doctor}', [AppointmentController::class, 'store'])->name('appointments.store');
+            Route::post('/cancel/{appointment}', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
+        });
+
+        Route::middleware('role:doctor')->group(function() {
+            Route::post('/confirm/{appointment}', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
+            Route::post('/reject/{appointment}', [AppointmentController::class, 'reject'])->name('appointments.reject');
+            Route::post('/complete/{appointment}', [AppointmentController::class, 'complete'])->name('appointments.complete');
+        });
+    });
+
+    // ===================
+    // FEEDBACK
+    // ===================
+    Route::resource('feedbacks', FeedbackController::class);
+
+    // ===================
+    // MESSAGE
+    // ===================
+    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+    Route::get('/messages/chat/{id}', [MessageController::class, 'chat'])->name('messages.chat');
+    Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::delete('/messages/{message}', [MessageController::class, 'destroy'])->name('messages.destroy');
+
+    // ===================
+    // WOUND
+    // ===================
+    Route::resource('wounds', WoundController::class);
     
+    // ===================
+    // DOCTORS FOR PATIENTS
+    // ===================
+    Route::middleware('role:patient')->group(function() {
+        Route::get('/doctors', [DoctorController::class, 'listForPatients'])->name('doctors.index');
+        Route::get('/doctors/{doctor}', [DoctorController::class, 'showForPatients'])->name('doctors.show');
+    });
 });

@@ -8,57 +8,64 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
-    <!-- Simple Navigation -->
-    <nav class="bg-white shadow">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <a href="/" class="text-xl font-bold text-blue-600">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-6">
+                    <a href="{{ route('home') }}" class="text-xl font-bold hover:text-blue-200">
                         <i class="fas fa-hospital mr-2"></i>MedSystem
                     </a>
+                    
+                    @auth
+                        <!-- Navigation berdasarkan role -->
+                        @if(auth()->user()->role === 'patient')
+                            <a href="{{ route('doctors.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-user-md mr-1"></i>Doctors
+                            </a>
+                            <a href="{{ route('appointments.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-calendar-alt mr-1"></i>Appointments
+                            </a>
+                            <a href="{{ route('wounds.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-band-aid mr-1"></i>Wounds
+                            </a>
+                        @elseif(auth()->user()->role === 'doctor')
+                            <a href="{{ route('appointments.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-calendar-alt mr-1"></i>Appointments
+                            </a>
+                            <a href="{{ route('wounds.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-band-aid mr-1"></i>Patient Wounds
+                            </a>
+                        @elseif(auth()->user()->role === 'admin')
+                            <a href="{{ route('admin.doctors.index') }}" class="hover:text-blue-200">
+                                <i class="fas fa-users-cog mr-1"></i>Manage Doctors
+                            </a>
+                        @endif
+                    @endauth
                 </div>
                 
-                @auth
                 <div class="flex items-center space-x-4">
-                    <span class="text-gray-700">Hi, {{ Auth::user()->name }}</span>
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold 
-                        {{ Auth::user()->role == 'admin' ? 'bg-purple-100 text-purple-800' : 
-                          (Auth::user()->role == 'doctor' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800') }}">
-                        {{ ucfirst(Auth::user()->role) }}
-                    </span>
-                    
-                    <!-- Dashboard Link berdasarkan Role -->
-                    @if(Auth::user()->role == 'admin')
-                        <a href="{{ route('admin.dashboard') }}" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-                        </a>
-                    @elseif(Auth::user()->role == 'doctor')
-                        <a href="{{ route('doctor.dashboard') }}" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-                        </a>
+                    @auth
+                        <span class="text-sm">Hi, {{ auth()->user()->name }}</span>
+                        <span class="bg-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                            <i class="fas fa-user-tag mr-1"></i>{{ ucfirst(auth()->user()->role) }}
+                        </span>
+                        
+                        <form method="POST" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm">
+                                <i class="fas fa-sign-out-alt mr-1"></i>Logout
+                            </button>
+                        </form>
                     @else
-                        <a href="{{ route('patient.dashboard') }}" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
+                        <a href="{{ route('login') }}" class="hover:text-blue-200">
+                            Login
                         </a>
-                    @endif
-                    
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="text-red-600 hover:text-red-800">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    </form>
+                        <a href="{{ route('register') }}" class="bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100 font-medium">
+                            Register
+                        </a>
+                    @endauth
                 </div>
-                @else
-                <div class="flex items-center space-x-4">
-                    <a href="{{ route('login') }}" class="text-gray-700 hover:text-blue-600">
-                        Login
-                    </a>
-                    <a href="{{ route('register') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                        Register
-                    </a>
-                </div>
-                @endauth
             </div>
         </div>
     </nav>
@@ -67,14 +74,26 @@
     <main class="py-8">
         <div class="max-w-7xl mx-auto px-4">
             @if(session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
                     {{ session('success') }}
+                </div>
+            @endif
+            
+            @if(session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    {{ session('error') }}
                 </div>
             @endif
             
             @if($errors->any())
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    <ul class="list-disc list-inside">
+                    <div class="font-bold mb-2 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Please fix the following errors:
+                    </div>
+                    <ul class="list-disc list-inside ml-4">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach

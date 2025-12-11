@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DoctorSchedule extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'doctor_id',
         'day',

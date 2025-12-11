@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Appointment extends Model
 {
@@ -15,6 +16,8 @@ class Appointment extends Model
         'scheduled_at',
         'status',
     ];
+
+    protected $dates = ['scheduled_at'];
 
     public function user()
     {

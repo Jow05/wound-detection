@@ -28,10 +28,8 @@ class AuthController extends Controller
         if (Auth::attempt($request->only('email', 'password'))) {
             $request->session()->regenerate();
             
-            $user = Auth::user();
-            
-            // Redirect berdasarkan role
-            return $this->redirectToDashboard($user);
+            // Redirect ke home page
+            return redirect()->route('home')->with('success', 'Login successful!');
         }
 
         // Jika gagal
@@ -68,8 +66,8 @@ class AuthController extends Controller
         // Login otomatis setelah register
         Auth::login($user);
 
-        // Redirect ke dashboard
-        return $this->redirectToDashboard($user);
+        // Redirect ke home page
+        return redirect()->route('home')->with('success', 'Registration successful! Welcome ' . $user->name);
     }
 
     // Handle Logout
@@ -79,21 +77,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         
-        return redirect('/');
-    }
-
-    // Helper: Redirect berdasarkan role
-    private function redirectToDashboard($user)
-    {
-        switch ($user->role) {
-            case 'admin':
-                return redirect()->route('admin.dashboard');
-            case 'doctor':
-                return redirect()->route('doctor.dashboard');
-            case 'patient':
-                return redirect()->route('patient.dashboard');
-            default:
-                return redirect('/');
-        }
+        return redirect('/')->with('success', 'You have been logged out successfully.');
     }
 }

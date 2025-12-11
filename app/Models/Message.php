@@ -13,13 +13,11 @@ class Message extends Model
         'image_path',
     ];
 
-    // Relasi ke User (pengirim)
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // Relasi ke Thread
     public function thread()
     {
         return $this->belongsTo(Thread::class);

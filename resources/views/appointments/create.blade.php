@@ -10,6 +10,16 @@
     <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
 
+    @if($errors->any())
+    <div class="alert alert-danger mb-4">
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
+
     <form action="{{ route('patient.appointments.store', $doctor->id) }}" method="POST">
         @csrf
         <div class="mb-4">

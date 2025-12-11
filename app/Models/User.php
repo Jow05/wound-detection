@@ -14,7 +14,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // PASTIKAN ADA INI
+        'role',
     ];
 
     protected $hidden = [
@@ -22,25 +22,21 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
-    // Helper methods
     public function isAdmin()
     {
         return $this->role === 'admin';
     }
-    
+
     public function isDoctor()
     {
         return $this->role === 'doctor';
     }
-    
+
     public function isPatient()
     {
         return $this->role === 'patient';
