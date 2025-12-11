@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DoctorController extends Controller
 {
@@ -31,8 +32,15 @@ class DoctorController extends Controller
             abort(403);
         }
         
-        // Ambil user yang belum punya role dokter
-        $users = User::whereDoesntHave('doctor')->get();
+        // Cara 1: Ambil user yang belum menjadi dokter (manual query)
+        $doctorUserIds = Doctor::pluck('user_id')->toArray();
+        $users = User::whereNotIn('id', $doctorUserIds)->get();
+        
+        // Cara 2: Atau jika mau filter hanya user dengan role tertentu
+        // $users = User::whereNotIn('id', $doctorUserIds)
+        //              ->whereIn('role', ['doctor', 'patient']) // optional filter
+        //              ->get();
+        
         return view('doctors.admin.create', compact('users'));
     }
 
@@ -49,6 +57,12 @@ class DoctorController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        // Update user role menjadi 'doctor' jika perlu
+        $user = User::find($request->user_id);
+        if ($user) {
+            $user->update(['role' => 'doctor']);
+        }
+
         Doctor::create($validated);
 
         return redirect()->route('admin.doctors.index')->with('success', 'Dokter berhasil ditambahkan.');
@@ -60,7 +74,7 @@ class DoctorController extends Controller
             abort(403);
         }
         
-        $doctor->load('user', 'appointments');
+        $doctor->load('user', 'appointments', 'schedules');
         return view('doctors.admin.show', compact('doctor'));
     }
 
@@ -70,10 +84,12 @@ class DoctorController extends Controller
             abort(403);
         }
         
-        // Ambil semua user yang belum punya doctor atau user dokter ini
-        $users = User::whereDoesntHave('doctor')
+        // Ambil semua user yang belum menjadi dokter ATAU user dokter ini
+        $doctorUserIds = Doctor::where('id', '!=', $doctor->id)->pluck('user_id')->toArray();
+        $users = User::whereNotIn('id', $doctorUserIds)
                      ->orWhere('id', $doctor->user_id)
                      ->get();
+        
         return view('doctors.admin.edit', compact('doctor', 'users'));
     }
 
@@ -90,6 +106,21 @@ class DoctorController extends Controller
             'description' => 'nullable|string',
         ]);
 
+        // Update user role jika user_id berubah
+        if ($doctor->user_id != $request->user_id) {
+            // Reset role user lama jika tidak menjadi dokter lagi
+            $oldUser = User::find($doctor->user_id);
+            if ($oldUser && Doctor::where('user_id', $oldUser->id)->count() == 0) {
+                $oldUser->update(['role' => 'patient']); // atau sesuai kebutuhan
+            }
+            
+            // Update role user baru menjadi doctor
+            $newUser = User::find($request->user_id);
+            if ($newUser) {
+                $newUser->update(['role' => 'doctor']);
+            }
+        }
+
         $doctor->update($validated);
 
         return redirect()->route('admin.doctors.index')->with('success', 'Data dokter berhasil diperbarui.');
@@ -99,6 +130,12 @@ class DoctorController extends Controller
     {
         if (Auth::user()->role !== 'admin') {
             abort(403);
+        }
+        
+        // Reset role user jika perlu
+        $user = User::find($doctor->user_id);
+        if ($user) {
+            $user->update(['role' => 'patient']);
         }
         
         $doctor->delete();

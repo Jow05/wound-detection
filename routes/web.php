@@ -46,8 +46,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // ===================
-    // DOCTORS (ADMIN ONLY)
-    // ===================
+// DOCTORS (ADMIN ONLY)
+// ===================
     Route::prefix('admin')->name('admin.')->group(function() {
         Route::resource('doctors', DoctorController::class)->except(['show']);
         Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');

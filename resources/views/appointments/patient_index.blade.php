@@ -16,7 +16,7 @@
             @foreach($appointments as $appointment)
             <tr>
                 <td>{{ $appointment->doctor->user->name ?? '-' }}</td>
-                <td>{{ $appointment->scheduled_at->format('d M Y H:i') }}</td>
+                <td>{{ \Carbon\Carbon::parse($appointment->scheduled_at)->format('d M Y, H:i') }}</td>
                 <td>{{ ucfirst($appointment->status) }}</td>
             </tr>
             @endforeach
