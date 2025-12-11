@@ -20,7 +20,7 @@
     </div>
     @endif
 
-    <form action="{{ route('patient.appointments.store', $doctor->id) }}" method="POST">
+    <form action="{{ route('aappointments.store', $doctor->id) }}" method="POST">
         @csrf
         <div class="mb-4">
             <label class="block mb-1">Dokter:</label>

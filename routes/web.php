@@ -48,7 +48,7 @@ Route::middleware('auth')->group(function () {
     // ===================
     // DOCTORS (ADMIN ONLY)
     // ===================
-    Route::prefix('admin')->middleware('role:admin')->name('admin.')->group(function() {
+    Route::prefix('admin')->name('admin.')->group(function() {
         Route::resource('doctors', DoctorController::class)->except(['show']);
         Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');
     });
@@ -59,17 +59,15 @@ Route::middleware('auth')->group(function () {
     Route::prefix('appointments')->group(function() {
         Route::get('/', [AppointmentController::class, 'index'])->name('appointments.index');
         
-        Route::middleware('role:patient')->group(function() {
-            Route::get('/create/{doctor}', [AppointmentController::class, 'create'])->name('appointments.create');
-            Route::post('/store/{doctor}', [AppointmentController::class, 'store'])->name('appointments.store');
-            Route::post('/cancel/{appointment}', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
-        });
+        // Untuk patient
+        Route::get('/create/{doctor}', [AppointmentController::class, 'create'])->name('appointments.create');
+        Route::post('/store/{doctor}', [AppointmentController::class, 'store'])->name('appointments.store');
+        Route::post('/cancel/{appointment}', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
 
-        Route::middleware('role:doctor')->group(function() {
-            Route::post('/confirm/{appointment}', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
-            Route::post('/reject/{appointment}', [AppointmentController::class, 'reject'])->name('appointments.reject');
-            Route::post('/complete/{appointment}', [AppointmentController::class, 'complete'])->name('appointments.complete');
-        });
+        // Untuk doctor
+        Route::post('/confirm/{appointment}', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
+        Route::post('/reject/{appointment}', [AppointmentController::class, 'reject'])->name('appointments.reject');
+        Route::post('/complete/{appointment}', [AppointmentController::class, 'complete'])->name('appointments.complete');
     });
 
     // ===================
@@ -91,13 +89,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('wounds', WoundController::class);
     
     // ===================
-    // DOCTORS FOR PATIENTS - INI YANG PERLU DIPASTIKAN ADA
+    // DOCTORS FOR PATIENTS
     // ===================
-    Route::middleware('role:patient')->group(function() {
-        // Route untuk daftar dokter (patient)
-        Route::get('/patient/doctors', [DoctorController::class, 'listForPatients'])->name('patient.doctors.index');
-        
-        // Route untuk detail dokter (patient)
-        Route::get('/patient/doctors/{doctor}', [DoctorController::class, 'showForPatients'])->name('patient.doctors.show');
-    });
+    // Route untuk daftar dokter (patient)
+    Route::get('/patient/doctors', [DoctorController::class, 'listForPatients'])->name('patient.doctors.index');
+    
+    // Route untuk detail dokter (patient)
+    Route::get('/patient/doctors/{doctor}', [DoctorController::class, 'showForPatients'])->name('patient.doctors.show');
 });

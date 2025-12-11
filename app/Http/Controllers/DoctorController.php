@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Doctor;
 use App\Models\User;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DoctorController extends Controller
 {
@@ -49,7 +51,7 @@ class DoctorController extends Controller
 
         Doctor::create($validated);
 
-        return redirect()->route('doctors.index')->with('success', 'Dokter berhasil ditambahkan.');
+        return redirect()->route('admin.doctors.index')->with('success', 'Dokter berhasil ditambahkan.');
     }
 
     public function show(Doctor $doctor)
@@ -90,7 +92,7 @@ class DoctorController extends Controller
 
         $doctor->update($validated);
 
-        return redirect()->route('doctors.index')->with('success', 'Data dokter berhasil diperbarui.');
+        return redirect()->route('admin.doctors.index')->with('success', 'Data dokter berhasil diperbarui.');
     }
 
     public function destroy(Doctor $doctor)
@@ -100,7 +102,7 @@ class DoctorController extends Controller
         }
         
         $doctor->delete();
-        return redirect()->route('doctors.index')->with('success', 'Dokter berhasil dihapus.');
+        return redirect()->route('admin.doctors.index')->with('success', 'Dokter berhasil dihapus.');
     }
 
     // =========================
@@ -117,27 +119,30 @@ class DoctorController extends Controller
             abort(403, 'Hanya pasien yang bisa mengakses halaman ini.');
         }
         
-        $doctors = Doctor::with(['user', 'schedules'])->get();
+        // Gunakan paginate() untuk pagination support
+        $doctors = Doctor::with(['user', 'schedules'])
+            ->orderBy('id', 'desc')
+            ->paginate(9); // 9 dokter per halaman
+        
         return view('doctors.patient.index', compact('doctors'));
     }
 
     /**
      * Tampilkan detail dokter + jadwal appointment pasien
      */
-    public function showForPatients(Doctor $doctor)
+    public function showForPatients($doctorId)
     {
         if (Auth::user()->role !== 'patient') {
             abort(403);
         }
         
-        // Ambil appointment pasien yang statusnya pending
-        $appointments = $doctor->appointments()
-                               ->where('user_id', Auth::id())
-                               ->where('status', 'pending')
-                               ->get();
-
-        // Ambil jadwal praktek dokter
-        $doctor->load('schedules');
+        $doctor = Doctor::with(['user', 'schedules'])->findOrFail($doctorId);
+        
+        // Ambil appointment pasien dengan dokter ini
+        $appointments = Appointment::where('user_id', Auth::id())
+            ->where('doctor_id', $doctorId)
+            ->latest()
+            ->get();
 
         return view('doctors.patient.show', compact('doctor', 'appointments'));
     }
