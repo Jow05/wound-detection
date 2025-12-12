@@ -12,7 +12,6 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WoundController;
-// Hapus DoctorAppointmentController jika sudah ada di AppointmentController
 
 /*
 |--------------------------------------------------------------------------
@@ -94,7 +93,7 @@ Route::middleware('auth')->group(function () {
     // ===================
     // DOCTORS (ADMIN ONLY)
     // ===================
-    Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function() {
+    Route::prefix('admin')->name('admin.')->group(function() {
         Route::resource('doctors', DoctorController::class)->except(['show']);
         Route::get('/doctors/{doctor}', [DoctorController::class, 'show'])->name('doctors.show');
     });
@@ -108,43 +107,27 @@ Route::middleware('auth')->group(function () {
         
         // Untuk patient
         Route::get('/create/{doctor}', [AppointmentController::class, 'create'])
-            ->name('appointments.create')
-            ->middleware('role:patient');
+            ->name('appointments.create');
         
         Route::post('/store/{doctor}', [AppointmentController::class, 'store'])
-            ->name('appointments.store')
-            ->middleware('role:patient');
+            ->name('appointments.store');
         
         Route::post('/cancel/{appointment}', [AppointmentController::class, 'cancel'])
-            ->name('appointments.cancel')
-            ->middleware('role:patient');
+            ->name('appointments.cancel');
 
-        // Untuk doctor - TAMBAHKAN MIDDLEWARE ROLE
+        // Untuk doctor
         Route::post('/confirm/{appointment}', [AppointmentController::class, 'confirm'])
-            ->name('appointments.confirm')
-            ->middleware('role:doctor');
+            ->name('appointments.confirm');
         
         Route::post('/reject/{appointment}', [AppointmentController::class, 'reject'])
-            ->name('appointments.reject')
-            ->middleware('role:doctor');
+            ->name('appointments.reject');
         
         Route::post('/complete/{appointment}', [AppointmentController::class, 'complete'])
-            ->name('appointments.complete')
-            ->middleware('role:doctor');
+            ->name('appointments.complete');
         
         Route::post('/reschedule/{appointment}', [AppointmentController::class, 'reschedule'])
-            ->name('appointments.reschedule')
-            ->middleware('role:doctor');
+            ->name('appointments.reschedule');
     });
-
-    // ===================
-    // DOCTOR DASHBOARD ROUTES (OPTIONAL - jika butuh dashboard khusus)
-    // ===================
-    // Jika tidak butuh dashboard khusus, bisa dihapus
-    // Route::middleware('role:doctor')->prefix('doctor')->name('doctor.')->group(function () {
-    //     Route::get('/dashboard', [AppointmentController::class, 'index'])->name('dashboard');
-    //     // Other doctor routes...
-    // });
 
     // ===================
     // FEEDBACK
@@ -168,10 +151,8 @@ Route::middleware('auth')->group(function () {
     // DOCTORS FOR PATIENTS
     // ===================
     Route::get('/patient/doctors', [DoctorController::class, 'listForPatients'])
-        ->name('patient.doctors.index')
-        ->middleware('role:patient');
+        ->name('patient.doctors.index');
     
     Route::get('/patient/doctors/{doctor}', [DoctorController::class, 'showForPatients'])
-        ->name('patient.doctors.show')
-        ->middleware('role:patient');
+        ->name('patient.doctors.show');
 });

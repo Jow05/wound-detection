@@ -156,8 +156,11 @@ class DoctorController extends Controller
             abort(403, 'Hanya pasien yang bisa mengakses halaman ini.');
         }
         
-        // Gunakan paginate() untuk pagination support
+        // PERBAIKAN: Tambahkan eager loading dan pagination yang benar
         $doctors = Doctor::with(['user', 'schedules'])
+            ->whereHas('user', function($query) {
+                $query->where('role', 'doctor'); // Filter hanya user dengan role 'doctor'
+            })
             ->orderBy('id', 'desc')
             ->paginate(9); // 9 dokter per halaman
         
