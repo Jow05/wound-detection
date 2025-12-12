@@ -47,9 +47,16 @@ class User extends Authenticatable
     }
     
     // Relationship dengan Doctor (jika user adalah dokter)
+    // TAMBAH withDefault() UNTUK HANDLE NULL
     public function doctor()
     {
-        return $this->hasOne(Doctor::class);
+        return $this->hasOne(Doctor::class)->withDefault(function () {
+            return new Doctor([
+                'specialization' => 'Not Specified',
+                'phone' => 'Not Available',
+                'description' => 'Doctor profile not completed'
+            ]);
+        });
     }
     
     // Relationship dengan appointments (jika user adalah patient)

@@ -15,19 +15,28 @@ class AppointmentController extends Controller
         $user = Auth::user();
 
         if ($user->role === 'doctor') {
+            // CEK APAKAH DOCTOR ADA
+            if (!$user->doctor || !$user->doctor->exists) {
+                return redirect()->route('doctor.setup')
+                    ->with('error', 'Silakan lengkapi profil dokter Anda terlebih dahulu.');
+            }
+            
             // Dokter hanya lihat appointment mereka sendiri
+            // Gunakan scope dari Model jika ada
             $appointments = Appointment::with('user', 'doctor')
                 ->where('doctor_id', $user->doctor->id)
-                ->latest()
-                ->get();
+                ->orderBy('scheduled_at', 'asc')
+                ->paginate(10);
+                
             return view('appointments.doctor_index', compact('appointments'));
         } else {
             // Pasien lihat appointment mereka sendiri
-            $appointments = Appointment::with('doctor')
+            $appointments = Appointment::with('doctor.user')
                 ->where('user_id', $user->id)
-                ->latest()
-                ->get();
-            return view('appointments.patient_index', compact('appointments'));
+                ->orderBy('scheduled_at', 'asc')
+                ->paginate(10);
+                
+            return view('appointments.index', compact('appointments'));
         }
     }
 
@@ -74,40 +83,103 @@ class AppointmentController extends Controller
                          ->with('success', 'Appointment berhasil dibuat!');
     }
 
-    public function confirm(Appointment $appointment)
+    // Method untuk approve appointment
+    public function confirm($id)
     {
-        // Hanya dokter yang terkait yang bisa konfirmasi
-        if (Auth::id() !== $appointment->doctor->user_id) {
-            abort(403);
+        $appointment = Appointment::findOrFail($id);
+        $user = Auth::user();
+        
+        // Check authorization - dokter harus terkait dengan appointment
+        if ($user->role !== 'doctor' || $appointment->doctor_id !== $user->doctor->id) {
+            abort(403, 'Unauthorized action.');
         }
         
-        $appointment->update(['status' => 'approved']);
-        
-        return back()->with('success', 'Appointment dikonfirmasi!');
-    }
-
-    public function reject(Appointment $appointment)
-    {
-        if (Auth::id() !== $appointment->doctor->user_id) {
-            abort(403);
+        // PAKAI METHOD DARI MODEL (jika ada) atau manual update
+        if (method_exists($appointment, 'approve')) {
+            $appointment->approve();
+        } else {
+            $appointment->status = 'approved';
+            $appointment->save();
         }
         
-        $appointment->update(['status' => 'rejected']);
-        
-        return back()->with('success', 'Appointment ditolak.');
+        return back()->with('success', 'Appointment approved successfully.');
     }
 
-    public function complete(Appointment $appointment)
+    // Method untuk reject/cancel appointment
+    public function reject(Request $request, $id)
     {
-        if (Auth::id() !== $appointment->doctor->user_id) {
-            abort(403);
+        $appointment = Appointment::findOrFail($id);
+        $user = Auth::user();
+        
+        // Check authorization
+        if ($user->role !== 'doctor' || $appointment->doctor_id !== $user->doctor->id) {
+            abort(403, 'Unauthorized action.');
         }
         
-        // Status lengkap - buat custom jika perlu
-        // $appointment->update(['status' => 'completed']);
-        return back()->with('info', 'Fitur complete belum diimplementasi.');
+        // PAKAI METHOD DARI MODEL (jika ada) atau manual update
+        if (method_exists($appointment, 'cancel')) {
+            $appointment->cancel($request->reason ?? 'Cancelled by doctor');
+        } else {
+            $appointment->status = 'cancelled';
+            $appointment->reason = $request->reason ?? 'Cancelled by doctor';
+            $appointment->save();
+        }
+        
+        return back()->with('success', 'Appointment cancelled.');
     }
 
+    // Method untuk complete appointment
+    public function complete($id)
+    {
+        $appointment = Appointment::findOrFail($id);
+        $user = Auth::user();
+        
+        // Check authorization
+        if ($user->role !== 'doctor' || $appointment->doctor_id !== $user->doctor->id) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        // PAKAI METHOD DARI MODEL (jika ada) atau manual update
+        if (method_exists($appointment, 'complete')) {
+            $appointment->complete();
+        } else {
+            $appointment->status = 'completed';
+            $appointment->save();
+        }
+        
+        return back()->with('success', 'Appointment marked as completed.');
+    }
+
+    // Method untuk reschedule appointment
+    public function reschedule(Request $request, $id)
+    {
+        $request->validate([
+            'new_scheduled_at' => 'required|date|after:now',
+            'reason' => 'required|string|max:500',
+        ]);
+        
+        $appointment = Appointment::findOrFail($id);
+        $user = Auth::user();
+        
+        // Check authorization
+        if ($user->role !== 'doctor' || $appointment->doctor_id !== $user->doctor->id) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        // PAKAI METHOD DARI MODEL (jika ada) atau manual update
+        if (method_exists($appointment, 'reschedule')) {
+            $appointment->reschedule($request->new_scheduled_at, $request->reason);
+        } else {
+            $appointment->scheduled_at = Carbon::parse($request->new_scheduled_at);
+            $appointment->status = 'rescheduled';
+            $appointment->reason = $request->reason;
+            $appointment->save();
+        }
+        
+        return back()->with('success', 'Appointment rescheduled successfully.');
+    }
+
+    // Method cancel untuk pasien
     public function cancel(Appointment $appointment)
     {
         // Hanya pasien pemilik appointment yang bisa cancel
@@ -120,7 +192,12 @@ class AppointmentController extends Controller
             return back()->with('error', 'Hanya appointment pending yang bisa dibatalkan.');
         }
         
-        $appointment->update(['status' => 'rejected']);
+        // PAKAI METHOD DARI MODEL (jika ada) atau manual update
+        if (method_exists($appointment, 'cancel')) {
+            $appointment->cancel('Cancelled by patient');
+        } else {
+            $appointment->update(['status' => 'cancelled', 'reason' => 'Cancelled by patient']);
+        }
         
         return back()->with('success', 'Appointment dibatalkan.');
     }

@@ -18,7 +18,10 @@ class Doctor extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withDefault([
+            'name' => 'Unknown User',
+            'email' => 'unknown@example.com'
+        ]);
     }
 
     public function appointments()
